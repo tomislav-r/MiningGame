@@ -14,6 +14,9 @@ GameObject:
   - component: {fileID: 5541632500955384603}
   - component: {fileID: 8661071553317133320}
   - component: {fileID: 1084235276233266324}
+  - component: {fileID: -5980206036753068933}
+  - component: {fileID: 2985204882410540435}
+  - component: {fileID: 987003125149195388}
   m_Layer: 0
   m_Name: BasicEnemy
   m_TagString: Untagged
@@ -85,8 +88,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 1, g: 0, b: 0, a: 1}
+  m_Sprite: {fileID: 4542708414758495894, guid: 0fb943bb2a715d0458b1fac668e25daf, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -156,7 +159,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 0.003540039, y: 0.043029785}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -166,7 +169,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.9, y: 0.9}
+  m_Size: {x: 0.46533203, y: 0.6697998}
   m_EdgeRadius: 0
 --- !u!114 &8661071553317133320
 MonoBehaviour:
@@ -183,7 +186,7 @@ MonoBehaviour:
   maxHealth: 10
   hitColor: {r: 1, g: 1, b: 1, a: 1}
   hitFlashDuration: 0.08
-  knockbackForce: 20
+  knockbackForce: 15
   knockbackDuration: 0.15
 --- !u!114 &1084235276233266324
 MonoBehaviour:
@@ -203,7 +206,61 @@ MonoBehaviour:
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 8
+  losePlayerAfter: 1.5
   pathRefreshInterval: 0.4
   waypointReachedDistance: 0.15
   damage: 10
   attackCooldown: 1
+  attackAnimationDuration: 0.35
+  animationController: {fileID: 987003125149195388}
+--- !u!95 &-5980206036753068933
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4415088454624825208}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 2479d7bf54a63a8438c9ca86648064c9, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!111 &2985204882410540435
+Animation:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4415088454624825208}
+  m_Enabled: 1
+  serializedVersion: 4
+  m_Animation: {fileID: 0}
+  m_Animations: []
+  m_WrapMode: 0
+  m_PlayAutomatically: 1
+  m_AnimatePhysics: 0
+  m_UpdateMode: 0
+  m_CullingType: 0
+--- !u!114 &987003125149195388
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4415088454624825208}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd13c3dcb3b5bae4494abf65385e63d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimationController
+  animator: {fileID: -5980206036753068933}

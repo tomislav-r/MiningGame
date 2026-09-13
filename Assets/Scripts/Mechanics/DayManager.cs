@@ -22,6 +22,11 @@ public class DayManager : MonoBehaviour
     [SerializeField] private GameManager gameManager;
 
 
+    [Header("Gameplay Visibility")]
+    [SerializeField] private GameObject gameplayRoot;
+    [SerializeField] private GameObject hud;
+
+
     [Header("UI")]
     [SerializeField] private TMP_Text timerText;
     [SerializeField] private TMP_Text dayText;
@@ -34,6 +39,9 @@ public class DayManager : MonoBehaviour
     private void Start()
     {
         endOfDayUI.gameObject.SetActive(false);
+
+        gameplayRoot.SetActive(true);
+        hud.SetActive(true);
 
         UpdateDayUI();
 
@@ -116,6 +124,13 @@ public class DayManager : MonoBehaviour
             );
         }
 
+        // Sakrij cijeli gameplay svijet.
+        gameplayRoot.SetActive(false);
+
+        // Sakrij obični gameplay HUD.
+        hud.SetActive(false);
+
+        // Zaustavi vrijeme.
         Time.timeScale = 0f;
     }
 
@@ -152,7 +167,7 @@ public class DayManager : MonoBehaviour
             return;
         }
 
-        // Igra se nastavlja.
+        // Nastavljamo igru.
         Time.timeScale = 1f;
 
         currentDay++;
@@ -161,8 +176,14 @@ public class DayManager : MonoBehaviour
 
         lightPlacer.ResetLightsForNewDay();
 
+        // Sakrij End Of Day menu.
         endOfDayUI.gameObject.SetActive(false);
 
+        // Ponovno uključi gameplay.
+        gameplayRoot.SetActive(true);
+        hud.SetActive(true);
+
+        // Generiraj novu mapu.
         mineGenerator.RegenerateMap();
 
         StartDay();
@@ -197,7 +218,8 @@ public class DayManager : MonoBehaviour
             return;
         }
 
-        dayText.text = $"Year {currentDay} / {maxDays}";
+        dayText.text =
+            $"Year {currentDay} / {maxDays}";
     }
 
 

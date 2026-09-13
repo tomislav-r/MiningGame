@@ -14,6 +14,16 @@ public class MineGenerator : MonoBehaviour
 
     [SerializeField] private int smoothIterations = 5;
 
+    [Header("Cave Size Settings")]
+    [Min(1)]
+    [SerializeField] private int passageRadius = 2;
+
+    [Min(1)]
+    [SerializeField] private int spawnClearRadius = 3;
+
+    [Min(0)]
+    [SerializeField] private int caveExpansionPasses = 1;
+
 
     [Header("Region Settings")]
     [Range(0f, 1f)]
@@ -64,9 +74,32 @@ public class MineGenerator : MonoBehaviour
     [SerializeField] private int goldVeins = 4;
     [SerializeField] private int goldVeinSize = 4;
 
-
     [Header("Tilemap")]
     [SerializeField] private Tilemap mineTilemap;
+
+    [Header("Floor Sprites")]
+    [SerializeField] private Sprite floorCenterSprite;
+    [SerializeField] private Sprite floorTopSprite;
+    [SerializeField] private Sprite floorBottomSprite;
+    [SerializeField] private Sprite floorLeftSprite;
+    [SerializeField] private Sprite floorRightSprite;
+
+    [SerializeField] private Sprite floorTopLeftSprite;
+    [SerializeField] private Sprite floorTopRightSprite;
+    [SerializeField] private Sprite floorBottomLeftSprite;
+    [SerializeField] private Sprite floorBottomRightSprite;
+
+    [Header("Stone Sprites")]
+    [SerializeField] private Sprite stone1Sprite;
+    [SerializeField] private Sprite stone2Sprite;
+    [SerializeField] private Sprite stone3Sprite;
+
+    [Header("Ore Sprites")]
+    [SerializeField] private Sprite coalSprite;
+    [SerializeField] private Sprite copperSprite;
+    [SerializeField] private Sprite ironSprite;
+    [SerializeField] private Sprite goldSprite;
+    [SerializeField] private Sprite obsidianSprite;
 
     [Header("Extraction Zone")]
     [SerializeField] private Transform extractionZone;
@@ -141,9 +174,21 @@ public class MineGenerator : MonoBehaviour
     private Tile copperTile;
     private Tile ironTile;
     private Tile goldTile;
-
     private Tile obsidianTile;
 
+
+    //Ground tiles variables
+    private Tile floorCenterTile;
+
+    private Tile floorTopTile;
+    private Tile floorBottomTile;
+    private Tile floorLeftTile;
+    private Tile floorRightTile;
+
+    private Tile floorTopLeftTile;
+    private Tile floorTopRightTile;
+    private Tile floorBottomLeftTile;
+    private Tile floorBottomRightTile;
 
     private TileType[,] map;
     private int[,] regionMap;
@@ -155,7 +200,7 @@ public class MineGenerator : MonoBehaviour
     private void Start()
     {
         CreateTiles();
-        CreateFloorTile();
+        CreateFloorTiles(); 
         GenerateMap();
     }
 
@@ -178,45 +223,33 @@ public class MineGenerator : MonoBehaviour
             1
         );
 
-        stone1Tile =
-            CreateColoredTile(sprite, stone1Color);
+        stone1Tile = CreateColoredTile(stone1Sprite, Color.white);
 
-        stone2Tile =
-            CreateColoredTile(sprite, stone2Color);
+        stone2Tile = CreateColoredTile(stone2Sprite, Color.white);
 
-        stone3Tile =
-            CreateColoredTile(sprite, stone3Color);
+        stone3Tile = CreateColoredTile(stone3Sprite, Color.white);
 
+        coalTile = CreateColoredTile(coalSprite, Color.white);
 
-        coalTile =
-            CreateColoredTile(sprite, coalColor);
+        copperTile = CreateColoredTile(copperSprite, Color.white);
 
-        copperTile =
-            CreateColoredTile(sprite, copperColor);
+        ironTile = CreateColoredTile(ironSprite, Color.white);
 
-        ironTile =
-            CreateColoredTile(sprite, ironColor);
+        goldTile = CreateColoredTile(goldSprite, Color.white);
 
-        goldTile =
-            CreateColoredTile(sprite, goldColor);
-
-
-        obsidianTile =
-            CreateColoredTile(sprite, obsidianColor);
+        obsidianTile = CreateColoredTile(obsidianSprite, new Color(1.15f, 1.15f, 1.15f, 1f));
     }
 
 
-    private Tile CreateColoredTile(
-        Sprite sprite,
-        Color color)
+    private Tile CreateColoredTile(Sprite sprite, Color color)
     {
-        Tile tile =
-            ScriptableObject.CreateInstance<Tile>();
+        Tile tile = ScriptableObject.CreateInstance<Tile>();
 
         tile.sprite = sprite;
         tile.color = color;
         tile.colliderType = Tile.ColliderType.Grid;
         tile.flags = TileFlags.None;
+
         return tile;
     }
 
@@ -229,8 +262,6 @@ public class MineGenerator : MonoBehaviour
     {
         damagedRockHealth.Clear();
 
-        FillFloorTilemap();
-
         CreateRandomMap();
 
         for (int i = 0; i < smoothIterations; i++)
@@ -240,6 +271,8 @@ public class MineGenerator : MonoBehaviour
 
         ConnectCaves();
 
+        ExpandCavesForPlayer();
+
         PreparePlayerSpawn();
 
         AssignStoneRegions();
@@ -247,6 +280,8 @@ public class MineGenerator : MonoBehaviour
         GenerateOreVeins();
 
         ApplyNaturalObsidianBorder();
+
+        FillFloorTilemap();
 
         DrawMap();
 
@@ -691,7 +726,10 @@ public class MineGenerator : MonoBehaviour
 
         foreach (Vector2Int tile in line)
         {
-            DrawCircle(tile, 1);
+            DrawCircle(
+                tile,
+                passageRadius
+            );
         }
     }
 
@@ -804,6 +842,58 @@ public class MineGenerator : MonoBehaviour
     }
 
 
+    private void ExpandCavesForPlayer()
+    {
+        for (
+            int pass = 0;
+            pass < caveExpansionPasses;
+            pass++
+        )
+        {
+            TileType[,] originalMap =
+                (TileType[,])map.Clone();
+
+            for (int x = 1; x < width - 1; x++)
+            {
+                for (int y = 1; y < height - 1; y++)
+                {
+                    if (
+                        originalMap[x, y] !=
+                        TileType.Empty
+                    )
+                    {
+                        continue;
+                    }
+
+                    ClearCellIfValid(x + 1, y);
+                    ClearCellIfValid(x - 1, y);
+                    ClearCellIfValid(x, y + 1);
+                    ClearCellIfValid(x, y - 1);
+                }
+            }
+        }
+    }
+
+
+    private void ClearCellIfValid(
+        int x,
+        int y)
+    {
+        if (
+            x <= 0 ||
+            x >= width - 1 ||
+            y <= 0 ||
+            y >= height - 1
+        )
+        {
+            return;
+        }
+
+        map[x, y] =
+            TileType.Empty;
+    }
+
+
     // --------------------------------------------------
     // PLAYER SPAWN
     // --------------------------------------------------
@@ -855,9 +945,17 @@ public class MineGenerator : MonoBehaviour
             }
         }
 
-        for (int x = -1; x <= 1; x++)
+        for (
+            int x = -spawnClearRadius;
+            x <= spawnClearRadius;
+            x++
+        )
         {
-            for (int y = -1; y <= 1; y++)
+            for (
+                int y = -spawnClearRadius;
+                y <= spawnClearRadius;
+                y++
+            )
             {
                 int clearX =
                     playerSpawnCell.x + x;
@@ -1460,6 +1558,11 @@ public class MineGenerator : MonoBehaviour
                     tilePosition,
                     tile
                 );
+
+                ApplyRandomTileRotation(
+                    tilePosition,
+                    map[x, y]
+                );
             }
         }
     }
@@ -1639,6 +1742,11 @@ public class MineGenerator : MonoBehaviour
             null
         );
 
+        RefreshFloorAround(
+            mapX,
+            mapY
+        );
+
     }
 
 
@@ -1664,6 +1772,30 @@ public class MineGenerator : MonoBehaviour
 
         return mineTilemap
             .GetCellCenterWorld(cell);
+    }
+
+
+    public Vector2 GetCellWorldSize()
+    {
+        Vector3 origin =
+            mineTilemap.CellToWorld(
+                Vector3Int.zero
+            );
+
+        Vector3 right =
+            mineTilemap.CellToWorld(
+                Vector3Int.right
+            );
+
+        Vector3 up =
+            mineTilemap.CellToWorld(
+                Vector3Int.up
+            );
+
+        return new Vector2(
+            Vector3.Distance(origin, right),
+            Vector3.Distance(origin, up)
+        );
     }
 
 
@@ -2011,27 +2143,48 @@ public class MineGenerator : MonoBehaviour
         return map[cell.x, cell.y] == TileType.Empty;
     }
 
-    private void CreateFloorTile()
+    private void CreateFloorTiles()
     {
-        Texture2D texture = new Texture2D(1, 1);
+        floorCenterTile =
+            CreateFloorTile(floorCenterSprite);
 
-        texture.SetPixel(0, 0, Color.white);
-        texture.Apply();
+        floorTopTile =
+            CreateFloorTile(floorTopSprite);
 
-        Sprite sprite = Sprite.Create(
-            texture,
-            new Rect(0, 0, 1, 1),
-            new Vector2(0.5f, 0.5f),
-            1
-        );
+        floorBottomTile =
+            CreateFloorTile(floorBottomSprite);
 
-        floorTile = ScriptableObject.CreateInstance<Tile>();
+        floorLeftTile =
+            CreateFloorTile(floorLeftSprite);
 
-        floorTile.sprite = sprite;
-        floorTile.color = floorColor;
+        floorRightTile =
+            CreateFloorTile(floorRightSprite);
 
-        // Floor ne smije imati collider.
-        floorTile.colliderType = Tile.ColliderType.None;
+        floorTopLeftTile =
+            CreateFloorTile(floorTopLeftSprite);
+
+        floorTopRightTile =
+            CreateFloorTile(floorTopRightSprite);
+
+        floorBottomLeftTile =
+            CreateFloorTile(floorBottomLeftSprite);
+
+        floorBottomRightTile =
+            CreateFloorTile(floorBottomRightSprite);
+    }
+
+
+    private Tile CreateFloorTile(Sprite sprite)
+    {
+        Tile tile =
+            ScriptableObject.CreateInstance<Tile>();
+
+        tile.sprite = sprite;
+        tile.color = Color.white;
+        tile.colliderType = Tile.ColliderType.None;
+        tile.flags = TileFlags.None;
+
+        return tile;
     }
 
     private void FillFloorTilemap()
@@ -2048,7 +2201,192 @@ public class MineGenerator : MonoBehaviour
             for (int y = 0; y < height; y++)
             {
                 Vector3Int tilemapCell =
-                    MapToTilemapCell(x, y);
+                    MapToTilemapCell(
+                        x,
+                        y
+                    );
+
+                Tile floorTile =
+                    GetFloorTileForCell(
+                        x,
+                        y
+                    );
+
+                floorTilemap.SetTile(
+                    tilemapCell,
+                    floorTile
+                );
+
+                if (floorTile == floorCenterTile)
+                {
+                    ApplyRandomFloorRotation(
+                        tilemapCell
+                    );
+                }
+            }
+        }
+    }
+
+    private Tile GetFloorTileForCell(
+    int x,
+    int y)
+    {
+        // Ako je ispod stijene, ionako se trenutno ne vidi.
+        // Center služi kao obična podloga.
+        if (map[x, y] != TileType.Empty)
+        {
+            return floorCenterTile;
+        }
+
+        bool rockUp =
+            IsSolidCell(x, y + 1);
+
+        bool rockDown =
+            IsSolidCell(x, y - 1);
+
+        bool rockLeft =
+            IsSolidCell(x - 1, y);
+
+        bool rockRight =
+            IsSolidCell(x + 1, y);
+
+
+        // Kutovi imaju prednost.
+        if (rockUp && rockLeft)
+        {
+            return floorTopLeftTile;
+        }
+
+        if (rockUp && rockRight)
+        {
+            return floorTopRightTile;
+        }
+
+        if (rockDown && rockLeft)
+        {
+            return floorBottomLeftTile;
+        }
+
+        if (rockDown && rockRight)
+        {
+            return floorBottomRightTile;
+        }
+
+
+        // Ravni rubovi.
+        if (rockUp)
+        {
+            return floorTopTile;
+        }
+
+        if (rockDown)
+        {
+            return floorBottomTile;
+        }
+
+        if (rockLeft)
+        {
+            return floorLeftTile;
+        }
+
+        if (rockRight)
+        {
+            return floorRightTile;
+        }
+
+
+        // Nema stijene pokraj njega.
+        return floorCenterTile;
+    }
+
+    private void ApplyRandomTileRotation(
+    Vector3Int tilePosition,
+    TileType tileType)
+    {
+        // Empty nema sprite.
+        if (tileType == TileType.Empty)
+        {
+            return;
+        }
+
+        int randomRotation =
+            Random.Range(0, 4) * 90;
+
+        Matrix4x4 transformMatrix =
+            Matrix4x4.TRS(
+                Vector3.zero,
+                Quaternion.Euler(
+                    0f,
+                    0f,
+                    randomRotation
+                ),
+                Vector3.one
+            );
+
+        mineTilemap.SetTransformMatrix(
+            tilePosition,
+            transformMatrix
+        );
+    }
+
+    private bool IsSolidCell(
+    int x,
+    int y)
+    {
+        if (
+            x < 0 ||
+            x >= width ||
+            y < 0 ||
+            y >= height
+        )
+        {
+            return true;
+        }
+
+        return IsSolid(
+            map[x, y]
+        );
+    }
+
+    private void RefreshFloorAround(
+    int mapX,
+    int mapY)
+    {
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                int checkX =
+                    mapX + x;
+
+                int checkY =
+                    mapY + y;
+
+
+                if (
+                    checkX < 0 ||
+                    checkX >= width ||
+                    checkY < 0 ||
+                    checkY >= height
+                )
+                {
+                    continue;
+                }
+
+
+                Vector3Int tilemapCell =
+                    MapToTilemapCell(
+                        checkX,
+                        checkY
+                    );
+
+
+                Tile floorTile =
+                    GetFloorTileForCell(
+                        checkX,
+                        checkY
+                    );
+
 
                 floorTilemap.SetTile(
                     tilemapCell,
@@ -2056,5 +2394,28 @@ public class MineGenerator : MonoBehaviour
                 );
             }
         }
+    }
+
+    private void ApplyRandomFloorRotation(
+    Vector3Int tilePosition)
+    {
+        int randomRotation =
+            Random.Range(0, 4) * 90;
+
+        Matrix4x4 transformMatrix =
+            Matrix4x4.TRS(
+                Vector3.zero,
+                Quaternion.Euler(
+                    0f,
+                    0f,
+                    randomRotation
+                ),
+                Vector3.one
+            );
+
+        floorTilemap.SetTransformMatrix(
+            tilePosition,
+            transformMatrix
+        );
     }
 }

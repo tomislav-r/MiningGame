@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,22 +10,46 @@ public class EnemyAI : MonoBehaviour
     [SerializeField] private float detectionRange = 8f;
     [SerializeField] private float attackRange = 1.2f;
 
+
     [Header("Vision")]
     [SerializeField] private LayerMask obstacleLayer;
 
+    [SerializeField]
+    private float losePlayerAfter = 1.5f;
+
+
     [Header("Pathfinding")]
-    [SerializeField] private float pathRefreshInterval = 0.3f;
-    [SerializeField] private float waypointReachedDistance = 0.15f;
+    [SerializeField]
+    private float pathRefreshInterval = 0.75f;
+
+    [SerializeField]
+    private float waypointReachedDistance = 0.15f;
+
+    [SerializeField]
+    private int maxPathSearchNodes = 5000;
+
 
     [Header("Attack")]
     [SerializeField] private int damage = 10;
-    [SerializeField] private float attackCooldown = 1f;
+
+    [SerializeField]
+    private float attackCooldown = 1f;
+
+    [SerializeField]
+    private float attackAnimationDuration = 0.35f;
+
+
+    [Header("Animation")]
+    [SerializeField]
+    private EnemyAnimationController animationController;
+
 
     private Transform player;
     private PlayerHealth playerHealth;
     private MineGenerator mineGenerator;
 
     private Rigidbody2D rb;
+
 
     private List<Vector2Int> currentPath =
         new List<Vector2Int>();
@@ -33,8 +58,10 @@ public class EnemyAI : MonoBehaviour
 
     private float pathRefreshTimer;
     private float nextAttackTime;
+    private float lostSightTimer;
 
     private bool playerDetected;
+    private bool isAttacking;
 
     private Vector2Int lastKnownPlayerCell;
 
@@ -76,6 +103,8 @@ public class EnemyAI : MonoBehaviour
             mineGenerator == null
         )
         {
+            StopMovement();
+
             return;
         }
 
@@ -92,26 +121,48 @@ public class EnemyAI : MonoBehaviour
             CanSeePlayer();
 
 
-        // Enemy prvi put detektira Playera
-        // samo ako ga stvarno vidi.
+        // Player je trenutno vidljiv.
         if (canSeePlayer)
         {
             playerDetected = true;
 
+            lostSightTimer = 0f;
+
             UpdateLastKnownPlayerPosition();
         }
 
+        // Enemy je prije vidio Playera,
+        // ali ga sada više ne vidi.
+        else if (playerDetected)
+        {
+            lostSightTimer +=
+                Time.fixedDeltaTime;
 
-        // Nikada nije vidio Playera.
+
+            if (
+                lostSightTimer >=
+                losePlayerAfter
+            )
+            {
+                ForgetPlayer();
+
+                return;
+            }
+        }
+
+
+        // VAŽNO:
+        // Enemy ne smije računati path
+        // dok još nije detektirao Playera.
         if (!playerDetected)
         {
-            currentPath.Clear();
+            StopMovement();
+
             return;
         }
 
 
-        // Ako ga trenutno vidi i dovoljno je blizu,
-        // napada ga.
+        // Player je dovoljno blizu za napad.
         if (
             canSeePlayer &&
             distanceToPlayer <= attackRange
@@ -119,7 +170,12 @@ public class EnemyAI : MonoBehaviour
         {
             currentPath.Clear();
 
-            rb.linearVelocity = Vector2.zero;
+            StopMovement();
+
+            FaceDirection(
+                (Vector2)player.position -
+                rb.position
+            );
 
             TryAttack();
 
@@ -131,10 +187,10 @@ public class EnemyAI : MonoBehaviour
             Time.fixedDeltaTime;
 
 
-        if (
-            pathRefreshTimer <= 0f ||
-            currentPath.Count == 0
-        )
+        // Path se računa samo kada timer istekne.
+        // Ne računamo ga ponovno svaki FixedUpdate
+        // samo zato što je path prazan.
+        if (pathRefreshTimer <= 0f)
         {
             RecalculatePath();
 
@@ -146,18 +202,14 @@ public class EnemyAI : MonoBehaviour
         FollowPath();
 
 
-        // Ako je Enemy stigao do zadnje pozicije
-        // na kojoj je vidio Playera,
-        // ali ga tamo više ne vidi,
-        // prestaje ga tražiti.
+        // Enemy je stigao do posljednje poznate
+        // pozicije Playera, ali ga tamo ne vidi.
         if (
             !canSeePlayer &&
             HasReachedLastKnownPosition()
         )
         {
-            playerDetected = false;
-
-            currentPath.Clear();
+            ForgetPlayer();
         }
     }
 
@@ -169,6 +221,7 @@ public class EnemyAI : MonoBehaviour
                 (Vector2)player.position -
                 rb.position
             ).normalized;
+
 
         float distance =
             Vector2.Distance(
@@ -193,10 +246,11 @@ public class EnemyAI : MonoBehaviour
     private void UpdateLastKnownPlayerPosition()
     {
         if (
-            mineGenerator.TryGetMapCellFromWorldPosition(
-                player.position,
-                out Vector2Int playerCell
-            )
+            mineGenerator
+                .TryGetMapCellFromWorldPosition(
+                    player.position,
+                    out Vector2Int playerCell
+                )
         )
         {
             lastKnownPlayerCell =
@@ -208,12 +262,15 @@ public class EnemyAI : MonoBehaviour
     private void RecalculatePath()
     {
         if (
-            !mineGenerator.TryGetMapCellFromWorldPosition(
-                transform.position,
-                out Vector2Int enemyCell
-            )
+            !mineGenerator
+                .TryGetMapCellFromWorldPosition(
+                    transform.position,
+                    out Vector2Int enemyCell
+                )
         )
         {
+            currentPath.Clear();
+
             return;
         }
 
@@ -223,6 +280,7 @@ public class EnemyAI : MonoBehaviour
                 enemyCell,
                 lastKnownPlayerCell
             );
+
 
         pathIndex = 0;
     }
@@ -235,20 +293,44 @@ public class EnemyAI : MonoBehaviour
         Queue<Vector2Int> queue =
             new Queue<Vector2Int>();
 
+
         HashSet<Vector2Int> visited =
             new HashSet<Vector2Int>();
 
+
         Dictionary<Vector2Int, Vector2Int>
             cameFrom =
-                new Dictionary<Vector2Int, Vector2Int>();
+                new Dictionary<
+                    Vector2Int,
+                    Vector2Int
+                >();
 
 
         queue.Enqueue(start);
+
         visited.Add(start);
+
+
+        int searchedNodes = 0;
 
 
         while (queue.Count > 0)
         {
+            searchedNodes++;
+
+
+            // Sigurnosni limit.
+            // Enemy nikada ne smije pregledavati
+            // cijelu ogromnu mapu.
+            if (
+                searchedNodes >=
+                maxPathSearchNodes
+            )
+            {
+                return new List<Vector2Int>();
+            }
+
+
             Vector2Int current =
                 queue.Dequeue();
 
@@ -265,22 +347,16 @@ public class EnemyAI : MonoBehaviour
 
             foreach (
                 Vector2Int direction
-                in directions)
+                in directions
+            )
             {
                 Vector2Int neighbour =
-                    current + direction;
+                    current +
+                    direction;
 
 
                 if (
-                    visited.Contains(neighbour)
-                )
-                {
-                    continue;
-                }
-
-
-                if (
-                    !mineGenerator.IsWalkableCell(
+                    visited.Contains(
                         neighbour
                     )
                 )
@@ -289,12 +365,29 @@ public class EnemyAI : MonoBehaviour
                 }
 
 
-                visited.Add(neighbour);
+                if (
+                    !mineGenerator
+                        .IsWalkableCell(
+                            neighbour
+                        )
+                )
+                {
+                    continue;
+                }
+
+
+                visited.Add(
+                    neighbour
+                );
+
 
                 cameFrom[neighbour] =
                     current;
 
-                queue.Enqueue(neighbour);
+
+                queue.Enqueue(
+                    neighbour
+                );
             }
         }
 
@@ -311,6 +404,7 @@ public class EnemyAI : MonoBehaviour
         List<Vector2Int> path =
             new List<Vector2Int>();
 
+
         Vector2Int current =
             target;
 
@@ -319,12 +413,24 @@ public class EnemyAI : MonoBehaviour
         {
             path.Add(current);
 
+
+            if (
+                !cameFrom.ContainsKey(
+                    current
+                )
+            )
+            {
+                return new List<Vector2Int>();
+            }
+
+
             current =
                 cameFrom[current];
         }
 
 
         path.Reverse();
+
 
         return path;
     }
@@ -337,14 +443,17 @@ public class EnemyAI : MonoBehaviour
             pathIndex >= currentPath.Count
         )
         {
+            SetMoving(false);
+
             return;
         }
 
 
         Vector3 waypointWorld =
-            mineGenerator.GetWorldPositionFromMapCell(
-                currentPath[pathIndex]
-            );
+            mineGenerator
+                .GetWorldPositionFromMapCell(
+                    currentPath[pathIndex]
+                );
 
 
         Vector2 targetPosition =
@@ -352,6 +461,28 @@ public class EnemyAI : MonoBehaviour
                 waypointWorld.x,
                 waypointWorld.y
             );
+
+
+        Vector2 moveDirection =
+            targetPosition -
+            rb.position;
+
+
+        if (
+            moveDirection.sqrMagnitude >
+            0.001f
+        )
+        {
+            FaceDirection(
+                moveDirection
+            );
+
+            SetMoving(true);
+        }
+        else
+        {
+            SetMoving(false);
+        }
 
 
         Vector2 newPosition =
@@ -363,7 +494,9 @@ public class EnemyAI : MonoBehaviour
             );
 
 
-        rb.MovePosition(newPosition);
+        rb.MovePosition(
+            newPosition
+        );
 
 
         float distanceToWaypoint =
@@ -383,12 +516,45 @@ public class EnemyAI : MonoBehaviour
     }
 
 
+    private void FaceDirection(
+        Vector2 direction)
+    {
+        if (
+            direction.sqrMagnitude <
+            0.001f
+        )
+        {
+            return;
+        }
+
+
+        float angle =
+            Mathf.Atan2(
+                direction.y,
+                direction.x
+            ) *
+            Mathf.Rad2Deg;
+
+
+        // Sprite u rotaciji 0°
+        // pretpostavljeno gleda prema gore.
+        float targetRotation =
+            angle - 90f;
+
+
+        rb.MoveRotation(
+            targetRotation
+        );
+    }
+
+
     private bool HasReachedLastKnownPosition()
     {
         Vector3 targetWorld =
-            mineGenerator.GetWorldPositionFromMapCell(
-                lastKnownPlayerCell
-            );
+            mineGenerator
+                .GetWorldPositionFromMapCell(
+                    lastKnownPlayerCell
+                );
 
 
         float distance =
@@ -404,7 +570,10 @@ public class EnemyAI : MonoBehaviour
 
     private void TryAttack()
     {
-        if (Time.time < nextAttackTime)
+        if (
+            Time.time <
+            nextAttackTime
+        )
         {
             return;
         }
@@ -424,5 +593,117 @@ public class EnemyAI : MonoBehaviour
         nextAttackTime =
             Time.time +
             attackCooldown;
+
+
+        if (!isAttacking)
+        {
+            StartCoroutine(
+                PlayAttackAnimation()
+            );
+        }
+    }
+
+
+    private IEnumerator PlayAttackAnimation()
+    {
+        isAttacking = true;
+
+
+        if (
+            animationController != null
+        )
+        {
+            animationController
+                .SetAttacking(true);
+
+            animationController
+                .SetMoving(false);
+        }
+
+
+        yield return new WaitForSeconds(
+            attackAnimationDuration
+        );
+
+
+        isAttacking = false;
+
+
+        if (
+            animationController != null
+        )
+        {
+            animationController
+                .SetAttacking(false);
+        }
+    }
+
+
+    private void SetMoving(
+        bool moving)
+    {
+        if (
+            animationController == null
+        )
+        {
+            return;
+        }
+
+
+        animationController.SetMoving(
+            moving &&
+            !isAttacking
+        );
+    }
+
+
+    private void StopMovement()
+    {
+        rb.linearVelocity =
+            Vector2.zero;
+
+
+        SetMoving(false);
+    }
+
+
+    private void ForgetPlayer()
+    {
+        playerDetected = false;
+
+        lostSightTimer = 0f;
+
+        currentPath.Clear();
+
+        pathIndex = 0;
+
+        StopMovement();
+    }
+
+
+    private void OnDisable()
+    {
+        StopAllCoroutines();
+
+
+        if (
+            animationController != null
+        )
+        {
+            animationController
+                .SetMoving(false);
+
+            animationController
+                .SetAttacking(false);
+        }
+
+
+        isAttacking = false;
+
+        playerDetected = false;
+
+        lostSightTimer = 0f;
+
+        currentPath.Clear();
     }
 }
