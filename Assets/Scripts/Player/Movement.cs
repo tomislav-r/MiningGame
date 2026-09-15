@@ -10,6 +10,10 @@ public class Movement : MonoBehaviour
     [SerializeField] private InputActionReference moveActionReference;
     [SerializeField] private PlayerAnimationController animationController;
 
+    [Header("Aiming")]
+    [SerializeField] private InputActionReference lookActionReference; // bound to Mouse/position
+    [SerializeField] private Camera mainCamera;
+
     [Header("Audio")]
     [SerializeField] private AudioSource walkingAudioSource;
     [SerializeField] private float walkingVolume = 0.8f;
@@ -18,6 +22,7 @@ public class Movement : MonoBehaviour
 
     private Rigidbody2D rb;
     private Vector2 moveInput;
+    private float forwardInput;
 
     private bool walkingSoundActive;
 
@@ -25,6 +30,11 @@ public class Movement : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+
+        if (mainCamera == null)
+        {
+            mainCamera = Camera.main;
+        }
     }
 
 
@@ -54,20 +64,23 @@ public class Movement : MonoBehaviour
 
     private void FixedUpdate()
     {
+        UpdatePlayerRotation();
+
+        // Move forward/backward along the direction the player is currently facing
         rb.MovePosition(
             rb.position +
-            moveInput.normalized *
+            (Vector2)transform.up *
+            forwardInput *
             moveSpeed *
             Time.fixedDeltaTime
         );
-
-        UpdatePlayerRotation();
     }
 
 
     private void OnEnable()
     {
         moveActionReference.action.Enable();
+        lookActionReference.action.Enable();
 
         moveActionReference.action.performed +=
             OnMovePerformed;
@@ -86,6 +99,7 @@ public class Movement : MonoBehaviour
             OnMoveCanceled;
 
         moveActionReference.action.Disable();
+        lookActionReference.action.Disable();
 
         StopWalkingAudioImmediately();
     }
@@ -97,8 +111,11 @@ public class Movement : MonoBehaviour
         moveInput =
             context.ReadValue<Vector2>();
 
+        // Only forward/backward (W/S) drives movement now
+        forwardInput = moveInput.y;
+
         bool isMoving =
-            moveInput.sqrMagnitude > 0.01f;
+            Mathf.Abs(forwardInput) > 0.01f;
 
         animationController.SetMoving(
             isMoving
@@ -127,6 +144,8 @@ public class Movement : MonoBehaviour
         moveInput =
             Vector2.zero;
 
+        forwardInput = 0f;
+
         animationController.SetMoving(
             false
         );
@@ -138,8 +157,19 @@ public class Movement : MonoBehaviour
 
     private void UpdatePlayerRotation()
     {
+        Vector2 mouseScreenPos =
+            lookActionReference.action.ReadValue<Vector2>();
+
+        Vector3 mouseWorldPos =
+            mainCamera.ScreenToWorldPoint(mouseScreenPos);
+
+        mouseWorldPos.z = transform.position.z;
+
+        Vector2 direction =
+            (Vector2)mouseWorldPos - rb.position;
+
         if (
-            moveInput.sqrMagnitude 
+            direction.sqrMagnitude 
             < 0.01f
         )
         {
@@ -148,8 +178,8 @@ public class Movement : MonoBehaviour
 
         float angle =
             Mathf.Atan2(
-                moveInput.y,
-                moveInput.x
+                direction.y,
+                direction.x
             ) *
             Mathf.Rad2Deg;
 

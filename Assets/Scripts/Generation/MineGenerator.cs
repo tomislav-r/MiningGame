@@ -582,59 +582,29 @@ public class MineGenerator : MonoBehaviour
         List<Vector2Int> tiles =
             new List<Vector2Int>();
 
-        Queue<Vector2Int> queue =
-            new Queue<Vector2Int>();
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
 
-        Vector2Int startTile =
-            new Vector2Int(
-                startX,
-                startY
-            );
+        Vector2Int startTile = new Vector2Int(startX, startY);
 
         queue.Enqueue(startTile);
 
-        checkedTiles[
-            startX,
-            startY
-        ] = true;
+        checkedTiles[startX, startY] = true;
 
         while (queue.Count > 0)
         {
-            Vector2Int tile =
-                queue.Dequeue();
-
+            Vector2Int tile = queue.Dequeue();
             tiles.Add(tile);
 
-            CheckNeighbour(
-                tile.x + 1,
-                tile.y,
-                queue,
-                checkedTiles,
-                tileType
+            CheckNeighbour(tile.x + 1, tile.y, queue, checkedTiles, tileType
             );
 
-            CheckNeighbour(
-                tile.x - 1,
-                tile.y,
-                queue,
-                checkedTiles,
-                tileType
+            CheckNeighbour(tile.x - 1, tile.y, queue, checkedTiles, tileType
             );
 
-            CheckNeighbour(
-                tile.x,
-                tile.y + 1,
-                queue,
-                checkedTiles,
-                tileType
+            CheckNeighbour(tile.x, tile.y + 1, queue, checkedTiles, tileType
             );
 
-            CheckNeighbour(
-                tile.x,
-                tile.y - 1,
-                queue,
-                checkedTiles,
-                tileType
+            CheckNeighbour(tile.x, tile.y - 1, queue, checkedTiles, tileType
             );
         }
 
@@ -926,22 +896,13 @@ public class MineGenerator : MonoBehaviour
             in mainCaveRegion
         )
         {
-            float distance =
-                Vector2.SqrMagnitude(
-                    (Vector2)cell -
-                    mapCenter
-                );
+            float distance = Vector2.SqrMagnitude((Vector2)cell - mapCenter);
 
-            if (
-                distance <
-                bestDistance
-            )
+            if (distance < bestDistance)
             {
-                bestDistance =
-                    distance;
+                bestDistance = distance;
 
-                playerSpawnCell =
-                    cell;
+                playerSpawnCell = cell;
             }
         }
 
@@ -980,9 +941,7 @@ public class MineGenerator : MonoBehaviour
     }
 
 
-    // --------------------------------------------------
     // STONE REGIONS
-    // --------------------------------------------------
 
     private void AssignStoneRegions()
     {
@@ -1014,22 +973,11 @@ public class MineGenerator : MonoBehaviour
                 float normalizedDistance =
                     distance / maxDistance;
 
-                float noise =
-                    Mathf.PerlinNoise(
-                        (x + noiseOffsetX) *
-                        regionNoiseScale,
+                float noise = Mathf.PerlinNoise((x + noiseOffsetX) * regionNoiseScale, (y + noiseOffsetY) * regionNoiseScale);
 
-                        (y + noiseOffsetY) *
-                        regionNoiseScale
-                    );
+                float centeredNoise = (noise - 0.5f) * 2f;
 
-                float centeredNoise =
-                    (noise - 0.5f) * 2f;
-
-                float distortedDistance =
-                    normalizedDistance +
-                    centeredNoise *
-                    regionNoiseStrength;
+                float distortedDistance = normalizedDistance + centeredNoise * regionNoiseStrength;
 
                 distortedDistance =
                     Mathf.Clamp01(
@@ -1053,8 +1001,6 @@ public class MineGenerator : MonoBehaviour
 
                 regionMap[x, y] = region;
 
-                // Empty ostaje Empty,
-                // ali sada ipak znamo kojoj regiji pripada.
                 if (!IsSolid(map[x, y]))
                 {
                     continue;
@@ -1316,39 +1262,17 @@ public class MineGenerator : MonoBehaviour
     }
 
 
-    // --------------------------------------------------
     // ORE GENERATION
-    // --------------------------------------------------
 
     private void GenerateOreVeins()
     {
-        GenerateVeins(
-            TileType.Stone1,
-            TileType.Coal,
-            coalVeins,
-            coalVeinSize
-        );
+        GenerateVeins(TileType.Stone1, TileType.Coal, coalVeins, coalVeinSize);
 
-        GenerateVeins(
-            TileType.Stone1,
-            TileType.Copper,
-            copperVeins,
-            copperVeinSize
-        );
+        GenerateVeins(TileType.Stone1, TileType.Copper, copperVeins, copperVeinSize);
 
-        GenerateVeins(
-            TileType.Stone2,
-            TileType.Iron,
-            ironVeins,
-            ironVeinSize
-        );
+        GenerateVeins(TileType.Stone2, TileType.Iron, ironVeins, ironVeinSize);
 
-        GenerateVeins(
-            TileType.Stone3,
-            TileType.Gold,
-            goldVeins,
-            goldVeinSize
-        );
+        GenerateVeins(TileType.Stone3, TileType.Gold, goldVeins, goldVeinSize);
     }
 
 
@@ -1734,18 +1658,11 @@ public class MineGenerator : MonoBehaviour
 
         DropResource(tileType);
 
-        map[mapX, mapY] =
-            TileType.Empty;
+        map[mapX, mapY] = TileType.Empty;
 
-        mineTilemap.SetTile(
-            tileCell,
-            null
-        );
+        mineTilemap.SetTile(tileCell, null);
 
-        RefreshFloorAround(
-            mapX,
-            mapY
-        );
+        RefreshFloorAround(mapX, mapY);
 
     }
 

@@ -151,28 +151,20 @@ public class MiningController : MonoBehaviour
             return false;
         }
 
-        Vector2 forward =
-            transform.up.normalized;
+        Vector2 forward = transform.up.normalized;
 
-        int directionX =
-            Mathf.RoundToInt(forward.x);
+        int directionX = Mathf.RoundToInt(forward.x);
 
-        int directionY =
-            Mathf.RoundToInt(forward.y);
+        int directionY = Mathf.RoundToInt(forward.y);
 
-        Vector2Int direction =
-            new Vector2Int(
-                directionX,
-                directionY
-            );
+        Vector2Int direction = new Vector2Int(directionX, directionY);
 
         if (direction == Vector2Int.zero)
         {
             return false;
         }
 
-        Vector2Int frontCell =
-            playerCell + direction;
+        Vector2Int frontCell = playerCell + direction;
 
         frontCellWorldPosition =
             mineGenerator.GetWorldPositionFromMapCell(
@@ -185,8 +177,7 @@ public class MiningController : MonoBehaviour
             return false;
         }
 
-        // Ova provjera također sprječava
-        // pokušaj rudarenja Obsidiana.
+        // Ova provjera koja sprječava pokušaj rudarenja Obsidiana
         if (!mineGenerator.IsRockExposedToPlayer(
                 transform.position,
                 frontCellWorldPosition))

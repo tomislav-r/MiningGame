@@ -34,7 +34,7 @@ public class EndOfDayUI : MonoBehaviour
         gameObject.SetActive(true);
 
         titleText.text =
-            "DAY COMPLETE";
+            "YEAR COMPLETE";
 
         resourcesText.text =
             $"Coal: {inventory.GetCoal()} " +
