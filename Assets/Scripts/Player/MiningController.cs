@@ -13,9 +13,6 @@ public class MiningController : MonoBehaviour
     [Header("Mining Settings")]
     [SerializeField] private float miningInterval = 0.2f;
 
-    // Više se ne koristi za rudarenje.
-    // Ostavljen je samo zbog postojećih skripti
-    // koje možda koriste GetMiningRange().
     [SerializeField] private float miningRange = 1.5f;
 
     [Header("Target Visual")]
@@ -111,15 +108,12 @@ public class MiningController : MonoBehaviour
         Vector3 mouseWorldPosition =
             GetMouseWorldPosition();
 
-        // Napad na neprijatelja i dalje koristi miš.
         if (TryAttackEnemy(mouseWorldPosition))
         {
             StopMiningSound();
             return true;
         }
 
-        // Za stijene se rudari isključivo
-        // susjedni blok direktno ispred Playera.
         if (!TryGetFrontMineableCell(
                 out Vector3 frontCellWorldPosition))
         {
@@ -177,7 +171,6 @@ public class MiningController : MonoBehaviour
             return false;
         }
 
-        // Ova provjera koja sprječava pokušaj rudarenja Obsidiana
         if (!mineGenerator.IsRockExposedToPlayer(
                 transform.position,
                 frontCellWorldPosition))

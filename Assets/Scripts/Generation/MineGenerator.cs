@@ -205,9 +205,7 @@ public class MineGenerator : MonoBehaviour
     }
 
 
-    // --------------------------------------------------
     // TILE CREATION
-    // --------------------------------------------------
 
     private void CreateTiles()
     {
@@ -254,9 +252,7 @@ public class MineGenerator : MonoBehaviour
     }
 
 
-    // --------------------------------------------------
     // MAP GENERATION
-    // --------------------------------------------------
 
     private void GenerateMap()
     {
@@ -422,9 +418,7 @@ public class MineGenerator : MonoBehaviour
         GenerateMap();
     }
 
-    // --------------------------------------------------
     // CAVE CONNECTION
-    // --------------------------------------------------
 
     private void ConnectCaves()
     {
@@ -864,9 +858,7 @@ public class MineGenerator : MonoBehaviour
     }
 
 
-    // --------------------------------------------------
     // PLAYER SPAWN
-    // --------------------------------------------------
 
     private void PreparePlayerSpawn()
     {
@@ -1121,10 +1113,6 @@ public class MineGenerator : MonoBehaviour
                 return TileType.Stone3;
 
             default:
-                // The outermost cells are not assigned a region
-                // by AssignStoneRegions. Stone3 is the safest
-                // visual fallback because the border is farthest
-                // from the player spawn.
                 return TileType.Stone3;
         }
     }
@@ -1443,9 +1431,7 @@ public class MineGenerator : MonoBehaviour
     }
 
 
-    // --------------------------------------------------
     // DRAW MAP
-    // --------------------------------------------------
 
     private void DrawMap()
     {
@@ -1527,9 +1513,7 @@ public class MineGenerator : MonoBehaviour
     }
 
 
-    // --------------------------------------------------
     // PLAYER SPAWN
-    // --------------------------------------------------
 
     private void SpawnPlayer()
     {
@@ -1581,9 +1565,7 @@ public class MineGenerator : MonoBehaviour
     }
 
 
-    // --------------------------------------------------
     // MINING
-    // --------------------------------------------------
 
     public void MineTile(Vector3 worldPosition, int miningPower)
     {
@@ -1830,9 +1812,7 @@ public class MineGenerator : MonoBehaviour
     }
 
 
-    // --------------------------------------------------
     // HELPERS
-    // --------------------------------------------------
 
     private bool IsSolid(
         TileType type)
@@ -2148,8 +2128,6 @@ public class MineGenerator : MonoBehaviour
     int x,
     int y)
     {
-        // Ako je ispod stijene, ionako se trenutno ne vidi.
-        // Center služi kao obična podloga.
         if (map[x, y] != TileType.Empty)
         {
             return floorCenterTile;
@@ -2168,7 +2146,6 @@ public class MineGenerator : MonoBehaviour
             IsSolidCell(x + 1, y);
 
 
-        // Kutovi imaju prednost.
         if (rockUp && rockLeft)
         {
             return floorTopLeftTile;
@@ -2211,8 +2188,6 @@ public class MineGenerator : MonoBehaviour
             return floorRightTile;
         }
 
-
-        // Nema stijene pokraj njega.
         return floorCenterTile;
     }
 
@@ -2220,7 +2195,6 @@ public class MineGenerator : MonoBehaviour
     Vector3Int tilePosition,
     TileType tileType)
     {
-        // Empty nema sprite.
         if (tileType == TileType.Empty)
         {
             return;

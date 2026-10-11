@@ -8,6 +8,14 @@ public class PlayerHealth : MonoBehaviour
 
     private int currentHealth;
 
+    private PlayerHitFeedback hitFeedback;
+
+
+    private void Awake()
+    {
+        hitFeedback = GetComponent<PlayerHitFeedback>();
+    }
+
 
     private void Start()
     {
@@ -26,9 +34,19 @@ public class PlayerHealth : MonoBehaviour
             $"Player HP: {currentHealth}/{maxHealth}"
         );
 
+        if (hitFeedback != null)
+        {
+            hitFeedback.PlayHitEffect();
+        }
+
         if (currentHealth <= 0)
         {
             Debug.Log("Player je umro.");
+
+            if (hitFeedback != null)
+            {
+                hitFeedback.ClearHitEffect();
+            }
 
             gameManager.GameOver();
         }
@@ -39,7 +57,6 @@ public class PlayerHealth : MonoBehaviour
     {
         maxHealth = newMaxHealth;
 
-        // Za sada upgrade također potpuno izliječi igrača.
         currentHealth = maxHealth;
     }
 
@@ -60,5 +77,4 @@ public class PlayerHealth : MonoBehaviour
     {
         currentHealth = maxHealth;
     }
-
 }
